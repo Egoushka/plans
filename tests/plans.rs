@@ -5,7 +5,9 @@ use std::fs;
 const TOOLS: &str = "tool a cost 2; tool b cost 5;";
 
 fn ok(body: &str) -> Checked {
-    load(&format!("{TOOLS} {body}")).unwrap_or_else(|e| panic!("should pass: {e}")).1
+    load(&format!("{TOOLS} {body}"))
+        .unwrap_or_else(|e| panic!("should pass: {e}"))
+        .1
 }
 fn err(body: &str) -> String {
     match load(&format!("{TOOLS} {body}")) {
@@ -17,7 +19,10 @@ fn err(body: &str) -> String {
 #[test]
 fn sequence_sums() {
     let c = ok("plan { a(1); a(2); b(3); }");
-    assert_eq!((c.bound.calls_of("a"), c.bound.calls_of("b"), c.total), (2, 1, 9));
+    assert_eq!(
+        (c.bound.calls_of("a"), c.bound.calls_of("b"), c.total),
+        (2, 1, 9)
+    );
 }
 
 #[test]
@@ -29,7 +34,10 @@ fn if_takes_max_of_branches() {
 #[test]
 fn for_multiplies_body() {
     let c = ok("plan { for i in 0..4 { a(i); b(i); } }");
-    assert_eq!((c.bound.calls_of("a"), c.bound.calls_of("b"), c.total), (4, 4, 28));
+    assert_eq!(
+        (c.bound.calls_of("a"), c.bound.calls_of("b"), c.total),
+        (4, 4, 28)
+    );
 }
 
 #[test]
@@ -60,13 +68,19 @@ fn function_call_costs_callee_bound() {
 #[test]
 fn direct_and_mutual_recursion_rejected() {
     assert!(err("fn f(x) { return f(x); } plan { f(1); }").contains("recursion"));
-    assert!(err("fn f(x) { return g(x); } fn g(x) { return f(x); } plan { f(1); }").contains("recursion"));
+    assert!(
+        err("fn f(x) { return g(x); } fn g(x) { return f(x); } plan { f(1); }")
+            .contains("recursion")
+    );
 }
 
 #[test]
 fn budget_violations_report_line_and_bound() {
     let e = err("budget {\n a 3;\n} plan { for i in 0..4 { a(i); } }");
-    assert!(e.starts_with("line 2:") && e.contains("up to 4 times"), "{e}");
+    assert!(
+        e.starts_with("line 2:") && e.contains("up to 4 times"),
+        "{e}"
+    );
     let e = err("budget { total 10; } plan { a(1); b(1); b(1); }");
     assert!(e.contains("total cost may reach 12"), "{e}");
 }
@@ -100,9 +114,23 @@ fn files(dir: &str) -> Vec<String> {
 #[test]
 fn bad_examples_are_rejected_at_check_time() {
     let bad = files("bad");
-    assert!(bad.len() >= 5);
+    assert_eq!(bad.len(), 5);
     for f in bad {
-        assert!(load(&fs::read_to_string(&f).unwrap()).is_err(), "{f} should be rejected");
+        let reason = match f.rsplit('/').next().unwrap() {
+            "a_no_fuel.plan" => "without `fuel`",
+            "b_loop_over_budget.plan" => "budget exceeded: `fetch` may be called up to 4 times",
+            "c_recursion.plan" => "recursion",
+            "d_total_cost.plan" => "total cost may reach 120",
+            "e_list_no_max.plan" => "add `max N`",
+            other => panic!("{other}: no expected reason recorded"),
+        };
+        let err = load(&fs::read_to_string(&f).unwrap())
+            .err()
+            .unwrap_or_else(|| panic!("{f} should be rejected"));
+        assert!(
+            err.to_string().contains(reason),
+            "{f}: expected `{reason}`, got `{err}`"
+        );
     }
 }
 
@@ -116,7 +144,12 @@ fn good_examples_run_within_their_bound() {
         for (t, n) in &r.calls {
             assert!(*n <= c.bound.calls_of(t), "{f}: {t} actual {n} > bound");
         }
-        assert!(r.cost <= c.total, "{f}: cost {} > bound {}", r.cost, c.total);
+        assert!(
+            r.cost <= c.total,
+            "{f}: cost {} > bound {}",
+            r.cost,
+            c.total
+        );
     }
 }
 
@@ -124,9 +157,18 @@ const LIST_TOOLS: &str = "tool search cost 3 returns list; tool fetch cost 2;";
 
 #[test]
 fn for_max_is_accepted_with_proven_bound_and_truncates_at_runtime() {
-    let src = format!("{LIST_TOOLS} plan {{ let hits = search(1); for h in hits max 10 {{ fetch(h); }} }}");
+    let src = format!(
+        "{LIST_TOOLS} plan {{ let hits = search(1); for h in hits max 10 {{ fetch(h); }} }}"
+    );
     let (p, c) = load(&src).unwrap();
-    assert_eq!((c.bound.calls_of("search"), c.bound.calls_of("fetch"), c.total), (1, 10, 23));
+    assert_eq!(
+        (
+            c.bound.calls_of("search"),
+            c.bound.calls_of("fetch"),
+            c.total
+        ),
+        (1, 10, 23)
+    );
     let r = interp::run(&p).unwrap();
     assert_eq!(r.calls["fetch"], 10); // the fake search returns 25 items
     assert_eq!(r.truncated.len(), 1);
@@ -152,7 +194,9 @@ fn for_max_multiplies_in_nested_loops() {
 
 #[test]
 fn list_loop_without_max_is_rejected_with_the_fix() {
-    let e = match load(&format!("{LIST_TOOLS} plan {{ let hits = search(1);\n for h in hits {{ fetch(h); }} }}")) {
+    let e = match load(&format!(
+        "{LIST_TOOLS} plan {{ let hits = search(1);\n for h in hits {{ fetch(h); }} }}"
+    )) {
         Ok(_) => panic!("should be rejected"),
         Err(e) => e.to_string(),
     };
@@ -170,7 +214,10 @@ fn for_over_a_non_list_fails_at_runtime_not_silently() {
 fn if_paths_are_tighter_than_elementwise_max() {
     // x costs 5, y costs 5. First if: {x,x} or {y}. Second if: {y,y} or {x}.
     // Elementwise max: x 2+1, y 1+2 -> 6 calls -> 30. Paths: best is x,x,y,y = 20.
-    let c = ok_with("tool x cost 5; tool y cost 5;", "plan { if true { x(1); x(1); } else { y(1); } if true { y(1); y(1); } else { x(1); } }");
+    let c = ok_with(
+        "tool x cost 5; tool y cost 5;",
+        "plan { if true { x(1); x(1); } else { y(1); } if true { y(1); y(1); } else { x(1); } }",
+    );
     assert_eq!(c.legacy_total, 30);
     assert_eq!(c.total, 20);
     assert!(c.total < c.legacy_total);
@@ -179,12 +226,17 @@ fn if_paths_are_tighter_than_elementwise_max() {
 }
 
 fn ok_with(tools: &str, body: &str) -> Checked {
-    load(&format!("{tools} {body}")).unwrap_or_else(|e| panic!("should pass: {e}")).1
+    load(&format!("{tools} {body}"))
+        .unwrap_or_else(|e| panic!("should pass: {e}"))
+        .1
 }
 
 #[test]
 fn worst_path_names_the_branch_choices() {
-    let c = ok_with("tool x cost 5; tool y cost 1;", "plan {\n if true { x(1); } else { y(1); }\n }");
+    let c = ok_with(
+        "tool x cost 5; tool y cost 1;",
+        "plan {\n if true { x(1); } else { y(1); }\n }",
+    );
     assert_eq!(c.worst_path().choices, vec!["line 2 then".to_string()]);
     assert_eq!(c.total, 5);
 }
@@ -199,7 +251,11 @@ fn dominated_paths_are_pruned_and_straight_line_plans_have_one_path() {
 
 #[test]
 fn exclusive_example_is_tighter_than_old_rule() {
-    let src = fs::read_to_string(format!("{}/examples/exclusive.plan", env!("CARGO_MANIFEST_DIR"))).unwrap();
+    let src = fs::read_to_string(format!(
+        "{}/examples/exclusive.plan",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .unwrap();
     let c = load(&src).unwrap().1;
     assert_eq!((c.legacy_total, c.total), (33, 21));
 }

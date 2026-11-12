@@ -148,7 +148,12 @@ impl Parser {
                         self.kw("list")?;
                     }
                     self.sym(";")?;
-                    p.tools.push(ToolDecl { name, cost, returns_list, line });
+                    p.tools.push(ToolDecl {
+                        name,
+                        cost,
+                        returns_list,
+                        line,
+                    });
                 }
                 Tok::Id(k) if k == "fn" => {
                     self.i += 1;
@@ -163,7 +168,12 @@ impl Parser {
                     }
                     self.sym(")")?;
                     let body = self.block()?;
-                    p.fns.push(FnDecl { name, params, body, line });
+                    p.fns.push(FnDecl {
+                        name,
+                        params,
+                        body,
+                        line,
+                    });
                 }
                 Tok::Id(k) if k == "plan" => {
                     self.i += 1;
