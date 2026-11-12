@@ -13,7 +13,9 @@ pub struct Bound {
 
 impl Bound {
     fn one(tool: &str) -> Bound {
-        Bound { calls: BTreeMap::from([(tool.to_string(), 1)]) }
+        Bound {
+            calls: BTreeMap::from([(tool.to_string(), 1)]),
+        }
     }
     /// Sequence: calls add up.
     fn add(&mut self, o: &Bound) {
@@ -24,7 +26,11 @@ impl Bound {
     }
     /// Loop: the body runs at most `k` times.
     fn scale(&self, k: u64) -> Bound {
-        let calls = self.calls.iter().map(|(t, n)| (t.clone(), n.saturating_mul(k))).collect();
+        let calls = self
+            .calls
+            .iter()
+            .map(|(t, n)| (t.clone(), n.saturating_mul(k)))
+            .collect();
         Bound { calls }
     }
     /// Per tool, the larger of the two sides.
@@ -44,7 +50,9 @@ impl Bound {
         self.calls.get(tool).copied().unwrap_or(0)
     }
     pub fn cost(&self, costs: &BTreeMap<String, u64>) -> u64 {
-        self.calls.iter().fold(0u64, |a, (t, n)| a.saturating_add(n.saturating_mul(costs[t])))
+        self.calls.iter().fold(0u64, |a, (t, n)| {
+            a.saturating_add(n.saturating_mul(costs[t]))
+        })
     }
 }
 
@@ -70,15 +78,24 @@ struct Paths(Vec<Path>);
 
 impl Paths {
     fn none() -> Paths {
-        Paths(vec![Path { calls: Bound::default(), choices: vec![] }])
+        Paths(vec![Path {
+            calls: Bound::default(),
+            choices: vec![],
+        }])
     }
     fn one(tool: &str) -> Paths {
-        Paths(vec![Path { calls: Bound::one(tool), choices: vec![] }])
+        Paths(vec![Path {
+            calls: Bound::one(tool),
+            choices: vec![],
+        }])
     }
     /// Merge into a single path whose vector is the elementwise max: the old rule.
     fn collapse(&self, note: Option<&str>) -> Paths {
         let calls = self.0.iter().fold(Bound::default(), |a, p| a.max(&p.calls));
-        Paths(vec![Path { calls, choices: note.map(|n| vec![n.to_string()]).unwrap_or_default() }])
+        Paths(vec![Path {
+            calls,
+            choices: note.map(|n| vec![n.to_string()]).unwrap_or_default(),
+        }])
     }
     /// Drop dominated paths (and exact duplicates, keeping the first); merge if too many remain.
     fn norm(self) -> Paths {
@@ -86,7 +103,9 @@ impl Paths {
         let keep: Vec<Path> = (0..v.len())
             .filter(|&i| {
                 !(0..v.len()).any(|j| {
-                    j != i && v[j].calls.dominates(&v[i].calls) && (j < i || !v[i].calls.dominates(&v[j].calls))
+                    j != i
+                        && v[j].calls.dominates(&v[i].calls)
+                        && (j < i || !v[i].calls.dominates(&v[j].calls))
                 })
             })
             .map(|i| v[i].clone())
@@ -104,7 +123,10 @@ impl Paths {
             for b in &o.0 {
                 let mut calls = a.calls.clone();
                 calls.add(&b.calls);
-                out.push(Path { calls, choices: [a.choices.clone(), b.choices.clone()].concat() });
+                out.push(Path {
+                    calls,
+                    choices: [a.choices.clone(), b.choices.clone()].concat(),
+                });
             }
         }
         Paths(out).norm()
@@ -113,8 +135,15 @@ impl Paths {
     /// totals and per-tool maxima: cost is linear, so mixing paths across iterations never beats the best pure one.
     fn scale(&self, k: u64) -> Paths {
         let v = self.0.iter().map(|p| {
-            let choices = if k == 1 { p.choices.clone() } else { p.choices.iter().map(|c| format!("{c} x{k}")).collect() };
-            Path { calls: p.calls.scale(k), choices }
+            let choices = if k == 1 {
+                p.choices.clone()
+            } else {
+                p.choices.iter().map(|c| format!("{c} x{k}")).collect()
+            };
+            Path {
+                calls: p.calls.scale(k),
+                choices,
+            }
         });
         Paths(v.collect()).norm()
     }
@@ -164,8 +193,13 @@ impl<'a> Checker<'a> {
             return Ok(b.clone());
         }
         if self.stack.iter().any(|s| s == name) {
-            let path = [self.stack.clone(), vec![name.to_string()]].concat().join(" -> ");
-            return fail(line, format!("recursion is not allowed ({path}); no bound can be proven"));
+            let path = [self.stack.clone(), vec![name.to_string()]]
+                .concat()
+                .join(" -> ");
+            return fail(
+                line,
+                format!("recursion is not allowed ({path}); no bound can be proven"),
+            );
         }
         let f = self.fns[name];
         self.stack.push(name.to_string());
@@ -199,7 +233,11 @@ impl<'a> Checker<'a> {
                 let bt = self.block(t, &mut dt)?.tag(format!("line {} then", s.line));
                 let be = self.block(e, &mut de)?.tag(format!("line {} else", s.line));
                 let both = Paths([bt.0, be.0].concat()).norm();
-                let b = b.seq(&if self.legacy { both.collapse(None) } else { both });
+                let b = b.seq(&if self.legacy {
+                    both.collapse(None)
+                } else {
+                    both
+                });
                 // only names defined on both paths are safe to use afterwards
                 *defined = dt.intersection(&de).cloned().collect();
                 Ok(b)
@@ -263,7 +301,14 @@ impl<'a> Checker<'a> {
                     r = r.seq(&Paths::one(name));
                 } else if let Some(f) = self.fns.get(name.as_str()) {
                     if f.params.len() != args.len() {
-                        return fail(*line, format!("`{name}` takes {} argument(s), got {}", f.params.len(), args.len()));
+                        return fail(
+                            *line,
+                            format!(
+                                "`{name}` takes {} argument(s), got {}",
+                                f.params.len(),
+                                args.len()
+                            ),
+                        );
                     }
                     r = r.seq(&self.fn_bound(name, *line)?);
                 } else {
@@ -277,10 +322,19 @@ impl<'a> Checker<'a> {
 
 /// Check a plan with either the path-set rule or the old elementwise-max rule; returns the plan's paths.
 fn analyze(p: &Program, legacy: bool) -> R<(Paths, BTreeMap<String, u64>)> {
-    let mut c = Checker { tools: BTreeMap::new(), fns: HashMap::new(), done: HashMap::new(), stack: vec![], legacy };
+    let mut c = Checker {
+        tools: BTreeMap::new(),
+        fns: HashMap::new(),
+        done: HashMap::new(),
+        stack: vec![],
+        legacy,
+    };
     for t in &p.tools {
         if t.name == "total" || c.tools.insert(t.name.clone(), t.cost).is_some() {
-            return fail(t.line, format!("tool name `{}` is reserved or declared twice", t.name));
+            return fail(
+                t.line,
+                format!("tool name `{}` is reserved or declared twice", t.name),
+            );
         }
     }
     for f in &p.fns {
@@ -291,7 +345,9 @@ fn analyze(p: &Program, legacy: bool) -> R<(Paths, BTreeMap<String, u64>)> {
     for f in &p.fns {
         c.fn_bound(&f.name, f.line)?; // also checks functions the plan never calls
     }
-    let Some(plan) = &p.plan else { return fail(1, "no `plan` block") };
+    let Some(plan) = &p.plan else {
+        return fail(1, "no `plan` block");
+    };
     let paths = c.block(plan, &mut Defined::new())?;
     Ok((paths, c.tools))
 }
@@ -317,9 +373,19 @@ pub fn check(p: &Program) -> R<Checked> {
     }
     if let Some((limit, line)) = p.budget.total {
         if total > limit {
-            return fail(line, format!("budget exceeded: total cost may reach {total}, budget allows {limit}"));
+            return fail(
+                line,
+                format!("budget exceeded: total cost may reach {total}, budget allows {limit}"),
+            );
         }
     }
     let legacy_total = analyze(p, true)?.0 .0[0].cost(&costs);
-    Ok(Checked { bound, total, legacy_total, paths, worst, costs })
+    Ok(Checked {
+        bound,
+        total,
+        legacy_total,
+        paths,
+        worst,
+        costs,
+    })
 }

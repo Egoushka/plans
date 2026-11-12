@@ -17,12 +17,20 @@ fn val(v: &Val) -> String {
 
 fn join(m: impl Iterator<Item = (String, u64)>) -> String {
     let s: Vec<String> = m.map(|(t, n)| format!("{t} {n}")).collect();
-    if s.is_empty() { "-".into() } else { s.join(", ") }
+    if s.is_empty() {
+        "-".into()
+    } else {
+        s.join(", ")
+    }
 }
 
 fn print_check(c: &Checked, limits: &checked_plans::parser::Budget) {
     for (t, n) in &c.bound.calls {
-        let lim = limits.per_tool.iter().find(|x| &x.0 == t).map_or("unlimited".into(), |x| x.1.to_string());
+        let lim = limits
+            .per_tool
+            .iter()
+            .find(|x| &x.0 == t)
+            .map_or("unlimited".into(), |x| x.1.to_string());
         println!("  {t:<12} bound {n:<4} budget {lim}");
     }
     let lim = limits.total.map_or("unlimited".into(), |x| x.0.to_string());
@@ -31,19 +39,34 @@ fn print_check(c: &Checked, limits: &checked_plans::parser::Budget) {
         println!("  {} paths after pruning dominated ones:", c.paths.len());
         for p in &c.paths {
             let calls = join(p.calls.calls.iter().map(|(t, n)| (t.clone(), *n)));
-            println!("    cost {:<4} {calls}  [{}]", p.cost(&c.costs), choices(&p.choices));
+            println!(
+                "    cost {:<4} {calls}  [{}]",
+                p.cost(&c.costs),
+                choices(&p.choices)
+            );
         }
     }
     if !c.worst_path().choices.is_empty() {
-        println!("  worst path   {} (cost {})", choices(&c.worst_path().choices), c.total);
+        println!(
+            "  worst path   {} (cost {})",
+            choices(&c.worst_path().choices),
+            c.total
+        );
     }
     if c.legacy_total != c.total {
-        println!("  (elementwise-max rule would have said total {})", c.legacy_total);
+        println!(
+            "  (elementwise-max rule would have said total {})",
+            c.legacy_total
+        );
     }
 }
 
 fn choices(c: &[String]) -> String {
-    if c.is_empty() { "-".into() } else { c.join(", ") }
+    if c.is_empty() {
+        "-".into()
+    } else {
+        c.join(", ")
+    }
 }
 
 fn print_run(c: &Checked, r: &Report) {
@@ -51,9 +74,15 @@ fn print_run(c: &Checked, r: &Report) {
         let actual = r.calls.get(t).copied().unwrap_or(0);
         println!("  {t:<12} bound {n:<4} actual {actual}");
     }
-    println!("  {:<12} bound {:<4} actual {}", "total cost", c.total, r.cost);
+    println!(
+        "  {:<12} bound {:<4} actual {}",
+        "total cost", c.total, r.cost
+    );
     for t in &r.truncated {
-        println!("  loop at line {} truncated: list had {} items, max {}", t.line, t.len, t.max);
+        println!(
+            "  loop at line {} truncated: list had {} items, max {}",
+            t.line, t.len, t.max
+        );
     }
     if let Some(v) = &r.result {
         println!("  plan returned {}", val(v));
@@ -69,12 +98,25 @@ fn table(paths: &[String]) -> Result<(), String> {
             Ok((prog, c)) => {
                 let r = interp::run(&prog).map_err(|e| format!("{p}: {e}"))?;
                 let bound = join(c.bound.calls.iter().map(|(t, n)| (t.clone(), *n)));
-                let actual = join(c.bound.calls.keys().map(|t| (t.clone(), r.calls.get(t).copied().unwrap_or(0))));
+                let actual = join(
+                    c.bound
+                        .calls
+                        .keys()
+                        .map(|t| (t.clone(), r.calls.get(t).copied().unwrap_or(0))),
+                );
                 let mut check = "pass".to_string();
                 for t in &r.truncated {
-                    check += &format!(", loop at line {} truncated ({} items, max {})", t.line, t.len, t.max);
+                    check += &format!(
+                        ", loop at line {} truncated ({} items, max {})",
+                        t.line, t.len, t.max
+                    );
                 }
-                println!("| {name} | {bound} | {actual} | {} | {} | {} | {check} |", c.total, r.cost, choices(&c.worst_path().choices));
+                println!(
+                    "| {name} | {bound} | {actual} | {} | {} | {} | {check} |",
+                    c.total,
+                    r.cost,
+                    choices(&c.worst_path().choices)
+                );
             }
             Err(e) => println!("| {name} | - | - | - | - | - | REJECTED: {e} |"),
         }
@@ -107,7 +149,9 @@ fn go(args: &[String]) -> Result<ExitCode, String> {
                 Ok(ExitCode::from(1))
             }
         },
-        [cmd, paths @ ..] if cmd == "table" && !paths.is_empty() => table(paths).map(|_| ExitCode::SUCCESS),
+        [cmd, paths @ ..] if cmd == "table" && !paths.is_empty() => {
+            table(paths).map(|_| ExitCode::SUCCESS)
+        }
         _ => Err("usage: plans check <file> | plans run <file> | plans table <files...>".into()),
     }
 }

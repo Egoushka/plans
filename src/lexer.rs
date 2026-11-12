@@ -20,11 +20,16 @@ impl fmt::Display for PlanError {
 }
 
 pub fn fail<T>(line: usize, msg: impl Into<String>) -> Result<T, PlanError> {
-    Err(PlanError { line, msg: msg.into() })
+    Err(PlanError {
+        line,
+        msg: msg.into(),
+    })
 }
 
 // Two-character symbols come first so they win over their prefixes.
-const SYMS: [&str; 15] = ["..", "==", "{", "}", "(", ")", "[", "]", ";", ",", "+", "-", "<", "!", "="];
+const SYMS: [&str; 15] = [
+    "..", "==", "{", "}", "(", ")", "[", "]", ";", ",", "+", "-", "<", "!", "=",
+];
 
 pub fn lex(src: &str) -> Result<Vec<(Tok, usize)>, PlanError> {
     let cs: Vec<char> = src.chars().collect();

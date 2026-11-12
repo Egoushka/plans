@@ -78,7 +78,11 @@ impl<'a> Vm<'a> {
                 };
                 let max = max.unwrap_or(0);
                 if list.len() as u64 > max {
-                    self.rep.truncated.push(Truncation { line, len: list.len(), max });
+                    self.rep.truncated.push(Truncation {
+                        line,
+                        len: list.len(),
+                        max,
+                    });
                 }
                 for x in list.into_iter().take(max as usize) {
                     env.insert(v.clone(), Val::Int(x));
@@ -179,12 +183,18 @@ impl<'a> Vm<'a> {
 /// Run a plan. The caller must have run `checker::check` first (see `load`).
 pub fn run(p: &Program) -> R<Report> {
     let mut vm = Vm {
-        tools: p.tools.iter().map(|t| (t.name.as_str(), (t.cost, t.returns_list))).collect(),
+        tools: p
+            .tools
+            .iter()
+            .map(|t| (t.name.as_str(), (t.cost, t.returns_list)))
+            .collect(),
         fns: p.fns.iter().map(|f| (f.name.as_str(), f)).collect(),
         rep: Report::default(),
         line: 0,
     };
-    let Some(plan) = &p.plan else { return fail(1, "no `plan` block") };
+    let Some(plan) = &p.plan else {
+        return fail(1, "no `plan` block");
+    };
     vm.rep.result = vm.block(plan, &mut Env::new())?;
     Ok(vm.rep)
 }
