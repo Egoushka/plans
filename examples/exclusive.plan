@@ -1,0 +1,23 @@
+// Two decisions that each pick one expensive tool. Old rule: max per tool per `if`, summed
+// (ocr 3 + translate 3). Paths: no path does both, so the worst path is cheaper.
+tool fetch cost 3;
+tool ocr cost 6;
+tool translate cost 4;
+
+budget { total 40; }
+
+plan {
+  let kind = fetch(1);
+  if kind < 3 {
+    ocr(kind);
+    ocr(kind);
+  } else {
+    translate(kind);
+    translate(kind);
+  }
+  if kind == 1 {
+    translate(kind);
+  } else {
+    ocr(kind);
+  }
+}

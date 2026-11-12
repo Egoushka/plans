@@ -1,0 +1,16 @@
+// Search returns a list of unknown length; `max 10` is the proven bound and the runtime truncates there.
+tool search cost 3 returns list;
+tool fetch cost 2;
+tool summarize cost 1;
+
+budget { total 40; fetch 10; }
+
+plan {
+  let hits = search(1);
+  let n = 0;
+  for h in hits max 10 {
+    let page = fetch(h);
+    let n = n + summarize(page);
+  }
+  return n;
+}

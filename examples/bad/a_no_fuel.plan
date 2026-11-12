@@ -1,0 +1,9 @@
+// REJECT: a `while` without fuel cannot be bounded.
+tool fetch cost 4;
+budget { total 100; fetch 10; }
+plan {
+  let ok = 0;
+  while ok < 3 {
+    let ok = fetch(0);
+  }
+}

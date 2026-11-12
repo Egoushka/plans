@@ -1,0 +1,8 @@
+// REJECT: 4 loop iterations call fetch 4 times, the budget allows 3.
+tool fetch cost 4;
+budget { total 100; fetch 3; }
+plan {
+  for i in 0..4 {
+    fetch(i);
+  }
+}

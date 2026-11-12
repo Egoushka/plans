@@ -1,0 +1,21 @@
+// Functions calling functions: the callee bound is reused at every call site.
+tool read cost 1;
+tool write cost 3;
+tool notify cost 2;
+
+fn load(k) { return read(k) + read(k + 1); }
+
+fn sync(k) {
+  let v = load(k);
+  return write(v);
+}
+
+budget { total 20; read 6; write 2; notify 1; }
+
+plan {
+  let a = sync(1);
+  let b = sync(2);
+  let c = load(9);
+  if a < b { notify(a); } else { notify(c); }
+  return c;
+}

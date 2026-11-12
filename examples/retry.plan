@@ -1,0 +1,14 @@
+// Retry a flaky fetch, at most 5 attempts. The fake fetch "succeeds" (>= 3) on its 3rd call.
+tool fetch cost 4;
+tool log cost 1;
+
+budget { total 30; fetch 5; log 1; }
+
+plan {
+  let status = 0;
+  while status < 3 fuel 5 {
+    let status = fetch(0);
+  }
+  log(status);
+  return status;
+}

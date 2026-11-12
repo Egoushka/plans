@@ -1,0 +1,12 @@
+[package]
+name = "checked-plans"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "checked_plans"
+path = "src/lib.rs"
+
+[[bin]]
+name = "plans"
+path = "src/main.rs"

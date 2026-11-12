@@ -1,0 +1,9 @@
+tool search cost 3 returns list;
+tool fetch cost 2;
+
+plan {
+  let hits = search(1);
+  for h in hits {
+    fetch(h);
+  }
+}

@@ -1,0 +1,16 @@
+// Search 3 sources, then fetch at most 2 pages and summarize.
+tool search cost 2;
+tool fetch cost 5;
+tool summarize cost 3;
+
+budget { total 40; search 3; fetch 2; summarize 1; }
+
+plan {
+  let a = search(1);
+  let b = search(2);
+  let c = search(3);
+  for i in 0..2 {
+    let page = fetch(a + i);
+  }
+  return summarize(a + b + c);
+}

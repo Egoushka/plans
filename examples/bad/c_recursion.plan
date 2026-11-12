@@ -1,0 +1,8 @@
+// REJECT: a crawler that calls itself has no static bound.
+tool fetch cost 4;
+fn crawl(url) {
+  let page = fetch(url);
+  return crawl(page);
+}
+budget { total 100; fetch 10; }
+plan { crawl(1); }

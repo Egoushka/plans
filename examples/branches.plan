@@ -1,0 +1,19 @@
+// Different tool mixes per branch: the bound takes the larger side per tool.
+tool classify cost 1;
+tool translate cost 4;
+tool ocr cost 6;
+tool store cost 1;
+
+budget { total 30; classify 1; translate 2; ocr 1; store 1; }
+
+plan {
+  let kind = classify(3);
+  if kind < 3 {
+    let t = translate(kind);
+    let u = translate(t);
+    store(u);
+  } else {
+    let o = ocr(kind);
+    store(o);
+  }
+}

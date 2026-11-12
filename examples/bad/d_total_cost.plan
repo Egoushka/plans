@@ -1,0 +1,13 @@
+// REJECT: each tool is within its own limit, but a function in a loop blows the total cost.
+tool embed cost 10;
+tool index cost 10;
+fn ingest(x) {
+  let v = embed(x);
+  return index(v);
+}
+budget { total 100; embed 6; index 6; }
+plan {
+  for i in 0..6 {
+    ingest(i);
+  }
+}

@@ -1,0 +1,18 @@
+// Fan out over 6 items: look each one up, then score it.
+tool lookup cost 1;
+tool score cost 2;
+
+fn rate(x) {
+  let d = lookup(x);
+  return score(d);
+}
+
+budget { total 30; lookup 6; score 6; }
+
+plan {
+  let sum = 0;
+  for i in 0..6 {
+    let sum = sum + rate(i);
+  }
+  return sum;
+}
