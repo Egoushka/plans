@@ -17,7 +17,7 @@ cargo run -- check examples/retry.plan     # try one plan; also `run` and `table
 - A construct goes into the parser only with a checker rule that bounds it. No loop without a proven bound, no recursion.
 - `docs/plan-language.md` describes only what `src/parser.rs` accepts; change both together.
 - No MCP tool manifest (milestone 3) until a consumer needs it.
-- Actions are pinned by full commit SHA with a `# vX.Y.Z` comment.
+- Actions are pinned by full commit SHA with a `# vX` version comment.
 - Public repository: no hostnames, IP addresses, key names, home paths or employer names in any file.
 - Commits: Conventional Commits.
 - Architecturally significant decisions get an ADR under `docs/adr/`, numbered, one per decision.

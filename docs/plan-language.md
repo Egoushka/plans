@@ -27,7 +27,7 @@ budget { total 30; fetch 5; log 1; }
 fn load(k) { return read(k) + read(k + 1); }
 ```
 
-Parameters are comma-separated names. A function may call tools and other functions. Recursion, direct or mutual, is rejected. Calling with the wrong number of arguments is an error, and so is declaring a function twice.
+Parameters are comma-separated names. A function may call tools and other functions. Recursion, direct or mutual, is rejected. Calling a function with the wrong number of arguments is an error, and so is declaring a function twice. Tool calls are not checked for argument count.
 
 ## Plan
 
@@ -65,6 +65,6 @@ Keywords, which cannot be names: `tool cost fn plan budget let if else for in wh
 
 ## What the checker reports
 
-For an accepted plan: per-tool call bounds, the total cost bound, and for plans with several `if` paths the list of non-dominated paths with the worst one. For a rejected plan: the line and the reason, one of missing `fuel`, missing `max`, recursion, a per-tool or total budget exceeded, an unknown or duplicate name, wrong argument count, an undefined variable, or no `plan` block.
+For an accepted plan: per-tool call bounds, the total cost bound, and for plans with several `if` paths the list of non-dominated paths with the worst one. For a rejected plan: the line and the reason, one of missing `fuel`, missing `max`, recursion, a per-tool or total budget exceeded, an unknown or duplicate name, wrong function argument count, an undefined variable, no `plan` block, or a second `plan` block.
 
 Run it with `plans check <file>`, `plans run <file>` or `plans table <files...>`.
